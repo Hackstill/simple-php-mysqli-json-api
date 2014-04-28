@@ -53,7 +53,12 @@ foreach ($func['args'] as $arg)
 oci_execute($stid);
 $arr = array();
 while ($row = oci_fetch_array($stid, OCI_ASSOC))
+{
+  foreach ($row as $name => $val)
+    if (is_object($val))
+      $row[$name] == $row[$name]->load();
   $arr[] = $row;
+}
 oci_free_statement($stid);
 oci_close($conn);
 $arr = array('data' => $arr);
