@@ -17,5 +17,10 @@ $functions = array(
     'where' => '',
     'connect_name' => 'HOME',),
 );
+
+#sample authorization
+if ($_REQUEST['token'] !== '123')
+  show_error('Error: Access error');
+
 #http://localhost/simple_api/index.php?func_name=sample_func_1&user_id=265&hash=123
 ?>

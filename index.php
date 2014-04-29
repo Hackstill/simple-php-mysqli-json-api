@@ -1,9 +1,7 @@
 <?
-if ($_REQUEST['hash'] !== '123')
-  die('Error: Access error');
 include_once('mysql_war_sett.php');
-include_once('functions.php');
 include_once('mysql_magic.php');
+include_once('functions.php');
 define('DEBUG', 1);
 define('NOLOG', 1);
 
@@ -11,7 +9,7 @@ if (!sizeof($functions))
   show_error('Function library not loaded!');
 $func = $functions[$_REQUEST['func_name']];
 if (!is_array($func))
-  die('Error: function called does not exist in API!');
+  show_error('Error: function called does not exist in API!');
 $sql = 'select ' . $func['fields'] . ' from ' . $func['tables'];
 $where = array();
 if ($func['where'])
