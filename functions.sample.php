@@ -11,6 +11,7 @@ $functions = array(
   'sample_func_1' => array(
     'args' => array('user_id'),
     'arg_types' => 'i',#write arg types in string, for example 'iddsd'
+    'arg_cmp'=>'>',
     'fields' => '*',
     'tables' => 'dba_users',
     'where' => '',

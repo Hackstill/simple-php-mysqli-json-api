@@ -16,10 +16,18 @@ $sql = 'select ' . $func['fields'] . ' from ' . $func['tables'];
 $where = array();
 if ($func['where'])
   $where[] = $func['where'];
+$type = $param = array();
 if ($func['args'])
-  foreach ($func['args'] as $arg)
+  foreach ($func['args'] as $key => $arg)
     if ($_REQUEST[$arg])
-      $where[] = $arg . '=?';
+    {
+      $cmp = $func['arg_cmp'][$key];
+      if (!$cmp)
+        $cmp = '=';
+      $where[] = $arg . $cmp . '?';
+      $type[] = $func['arg_types'][$key];
+      $param[] = $_REQUEST[$arg];
+    }
 $sql .= ' where ' . implode(' and ', $where);
 if ($func['order'])
   $sql .= ' order by ' . $func['order'];
@@ -27,7 +35,6 @@ if ($func['order'] && $func['desc'])
   $sql .= ' desc';
 elseif ($func['order'] && $func['asc'])
   $sql .= ' asc';
-
 $c = $CONNECTS[$func['connect_name']];
 if (!$c)
   show_error('Connect for the function does not exist in settings file!');
@@ -40,28 +47,23 @@ $link->query('SET NAMES UTF8');
 $stmt = @$link->prepare($sql);
 if ($stmt === false)
   show_error('Query parsing incorrect (' . $link->error . ')');
-$type = $param = array();
-for ($i = 0; $i < mb_strlen($func['arg_types']); $i++)
-{
-  $type[] = $func['arg_types'][$i];
-  $param[] = $_REQUEST[$func['args'][$i]];
-}
-
 $params = array_merge($type, $param);
 call_user_func_array(array($stmt, 'bind_param'), refValues($params));
 $res = $stmt->execute();
 if ($res === false)
   show_error('Query execution failed (' . $link->error . ')');
+$row = array();
 $arr = array();
+$stmt->store_result();
 stmt_bind_assoc($stmt, $row);
-
-// loop through all result rows
 while ($stmt->fetch())
 {
   $arr[] = $row;
+  stmt_bind_assoc($stmt, $row);
 }
 
-@$stmt->close();
-@$link->close();
+$stmt->free_result();
+$stmt->close();
+$link->close();
 $arr = array('data' => $arr);
 echo json_encode($arr);
