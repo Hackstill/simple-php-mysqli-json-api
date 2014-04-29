@@ -1,8 +1,10 @@
 cache/*
 log/*
 tmp/*
-*oracle_sett.php
-*oracle_dev_sett.php
-*oracle_war_sett.php
+oracle_sett.php
+oracle_dev_sett.php
+oracle_war_sett.php
 functions.php
 .idea
+mysql_dev_sett.php
+mysql_war_sett.php

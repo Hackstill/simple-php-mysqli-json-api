@@ -1,9 +1,9 @@
 <?
 if ($_REQUEST['hash'] !== '123')
   die('Error: Access error');
-include_once('oracle_war_sett.php');
+include_once('mysql_war_sett.php');
 include_once('functions.php');
-include_once('oracle_magic.php');
+include_once('mysql_magic.php');
 define('DEBUG', 1);
 define('NOLOG', 1);
 
@@ -19,7 +19,7 @@ if ($func['where'])
 if ($func['args'])
   foreach ($func['args'] as $arg)
     if ($_REQUEST[$arg])
-      $where[] = $arg . '=:' . $arg;
+      $where[] = $arg . '=?';
 $sql .= ' where ' . implode(' and ', $where);
 if ($func['order'])
   $sql .= ' order by ' . $func['order'];
@@ -30,36 +30,38 @@ elseif ($func['order'] && $func['asc'])
 
 $c = $CONNECTS[$func['connect_name']];
 if (!$c)
-  show_error('connect for the function does not exist in settings file!');
+  show_error('Connect for the function does not exist in settings file!');
 
-if ($c['tns'])
-  $conn = oci_connect($c['scheme'], $c['pass'], $c['tns'], $c['enc'], $c['mode']);
-else
-  $conn = oci_connect($c['scheme'], $c['pass'], $c['connect'], $c['enc'], $c['mode']);
-if ($conn == false)
+$link = @ new mysqli($c['host'], $c['user'], $c['password'], $c['database']);
+
+if ($link->connect_errno)
+  show_error('Connect failed (' . $link->connect_error . ')');
+$link->query('SET NAMES UTF8');
+$stmt = @$link->prepare($sql);
+if ($stmt === false)
+  show_error('Query parsing incorrect (' . $link->error . ')');
+$type = $param = array();
+for ($i = 0; $i < mb_strlen($func['arg_types']); $i++)
 {
-  $e = oci_error();
-  show_error('connect failed (' . htmlentities($e['message'], ENT_QUOTES) . ')');
-}
-$stid = oci_parse($conn, $sql);
-if ($stid == false)
-{
-  $e = oci_error();
-  show_error('Query incorrect (' . htmlentities($e['message'], ENT_QUOTES) . ')');
+  $type[] = $func['arg_types'][$i];
+  $param[] = $_REQUEST[$func['args'][$i]];
 }
 
-foreach ($func['args'] as $arg)
-  oci_bind_by_name($stid, ':' . $arg, $_REQUEST[$arg]);
-oci_execute($stid);
+$params = array_merge($type, $param);
+call_user_func_array(array($stmt, 'bind_param'), refValues($params));
+$res = $stmt->execute();
+if ($res === false)
+  show_error('Query execution failed (' . $link->error . ')');
 $arr = array();
-while ($row = oci_fetch_array($stid, OCI_ASSOC))
+stmt_bind_assoc($stmt, $row);
+
+// loop through all result rows
+while ($stmt->fetch())
 {
-  foreach ($row as $name => $val)
-    if (is_object($val))
-      $row[$name] == $row[$name]->load();
   $arr[] = $row;
 }
-oci_free_statement($stid);
-oci_close($conn);
+
+@$stmt->close();
+@$link->close();
 $arr = array('data' => $arr);
 echo json_encode($arr);
